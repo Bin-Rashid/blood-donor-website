@@ -535,6 +535,20 @@
             font-size: 3rem;
         }
 
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -600,32 +614,6 @@
 
         <!-- Notification -->
         <div id="notification" class="notification"></div>
-
-        <!-- Admin Login Modal -->
-        <div id="adminLoginModal" class="modal">
-            <div class="modal-content">
-                <h3 class="modal-title">Admin Login</h3>
-                <div class="admin-login">
-                    <input type="password" id="adminPassword" class="form-control" placeholder="Enter admin password">
-                    <div class="modal-actions">
-                        <button id="loginSubmit" class="btn">Login</button>
-                        <button id="loginCancel" class="btn btn-outline">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Delete Confirmation Modal -->
-        <div id="deleteModal" class="modal">
-            <div class="modal-content">
-                <h3 class="modal-title">Confirm Deletion</h3>
-                <p>Are you sure you want to delete this donor? This action cannot be undone.</p>
-                <div class="modal-actions">
-                    <button id="confirmDelete" class="btn btn-danger">Delete</button>
-                    <button id="cancelDelete" class="btn btn-outline">Cancel</button>
-                </div>
-            </div>
-        </div>
 
         <!-- Edit Donor Modal -->
         <div id="editModal" class="modal">
@@ -693,29 +681,6 @@
             </div>
         </div>
 
-        <!-- Import Modal -->
-        <div id="importModal" class="modal">
-            <div class="modal-content">
-                <h3 class="modal-title">Import Donors from File</h3>
-                <p>Select a JSON or CSV file containing donor data to import.</p>
-                
-                <div class="form-group">
-                    <div class="file-input-wrapper">
-                        <input type="file" id="fileInput" accept=".json,.csv">
-                        <div class="file-input-label">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <span>Choose file or drag here</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-actions">
-                    <button id="processImport" class="btn btn-success" disabled>Process Import</button>
-                    <button id="cancelImport" class="btn btn-outline">Cancel</button>
-                </div>
-            </div>
-        </div>
-
         <!-- Register Tab Content -->
         <div class="tab-content active" id="register-tab">
             <h2 class="section-title">
@@ -770,7 +735,7 @@
                         </div>
                         <div class="form-group">
                             <label for="city">City</label>
-                            <input type="text" id="city" class="form-control">
+                            <input type="text" id="city" class="form-control>
                         </div>
                     </div>
                     <div class="form-group">
@@ -784,7 +749,10 @@
                         </label>
                     </div>
                     <div class="form-submit">
-                        <button type="submit" class="btn">Register as Donor</button>
+                        <button type="submit" class="btn" id="submitBtn">
+                            <span id="submitText">Register as Donor</span>
+                            <div id="submitLoading" class="loading" style="display: none;"></div>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -816,11 +784,8 @@
                 <button id="exportBtn" class="btn btn-success">
                     <i class="fas fa-file-export"></i> Export Data
                 </button>
-                <button id="importBtn" class="btn btn-info">
-                    <i class="fas fa-file-import"></i> Import Donors
-                </button>
-                <button id="adminLoginBtn" class="btn btn-outline">
-                    <i class="fas fa-lock"></i> Admin Login
+                <button id="refreshBtn" class="btn btn-info">
+                    <i class="fas fa-sync-alt"></i> Refresh Data
                 </button>
             </div>
             
@@ -847,79 +812,152 @@
     </div>
 
     <script>
-        // Data storage using localStorage with real-time sharing simulation
-        class DataStorage {
+        // =============================================
+        // GOOGLE APPS SCRIPT STORAGE
+        // =============================================
+        
+        class GoogleAppsScriptStorage {
             constructor() {
-                this.storageKey = 'bloodDonorsData';
-                this.adminKey = 'bloodDonorAdmin';
-                this.isAdmin = false;
-                this.donors = this.loadDonors();
-                this.checkAdminStatus();
-                
-                // Simulate real-time data sharing between users
-                this.syncData();
+                // 🔴 REPLACE THIS URL AFTER DEPLOYING YOUR GOOGLE APPS SCRIPT:
+                this.webAppUrl = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
             }
 
-            loadDonors() {
+            async loadDonors() {
                 try {
-                    const stored = localStorage.getItem(this.storageKey);
-                    if (stored) {
-                        return JSON.parse(stored);
+                    console.log('Loading donors from Google Apps Script...');
+                    const response = await fetch(`${this.webAppUrl}?action=getDonors`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                } catch (e) {
-                    console.error('Error loading donors from storage:', e);
+                    
+                    const donors = await response.json();
+                    console.log(`Loaded ${donors.length} donors from Google Apps Script`);
+                    return donors;
+                } catch (error) {
+                    console.error('Error loading from Google Apps Script:', error);
+                    return this.loadFromLocalStorage();
                 }
-                
-                // Return empty array if no stored data exists
-                return [];
             }
 
-            saveDonors() {
+            async addDonor(donor) {
                 try {
-                    localStorage.setItem(this.storageKey, JSON.stringify(this.donors));
-                    // Simulate data sharing - in a real app, this would sync with a server
-                    this.syncData();
+                    console.log('Adding donor via Google Apps Script...');
+                    
+                    const formData = new FormData();
+                    formData.append('action', 'addDonor');
+                    formData.append('name', donor.name);
+                    formData.append('phone', donor.phone);
+                    formData.append('bloodType', donor.bloodType || '');
+                    formData.append('country', donor.country || '');
+                    formData.append('city', donor.city || '');
+                    formData.append('lastDonation', donor.lastDonation);
+                    formData.append('profilePicture', donor.profilePicture || '');
+
+                    const response = await fetch(this.webAppUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        donor.id = result.id;
+                        donor.createdAt = new Date().toISOString();
+                        donor.updatedAt = new Date().toISOString();
+                        this.saveToLocalStorage(donor);
+                        return true;
+                    }
+                    return false;
+                } catch (error) {
+                    console.error('Error adding donor via Google Apps Script:', error);
+                    donor.id = this.generateId();
+                    donor.createdAt = new Date().toISOString();
+                    donor.updatedAt = new Date().toISOString();
+                    return this.saveToLocalStorage(donor);
+                }
+            }
+
+            async updateDonor(id, updatedData) {
+                try {
+                    console.log('Updating donor via Google Apps Script...');
+                    
+                    const formData = new FormData();
+                    formData.append('action', 'updateDonor');
+                    formData.append('id', id);
+                    formData.append('name', updatedData.name);
+                    formData.append('phone', updatedData.phone);
+                    formData.append('bloodType', updatedData.bloodType || '');
+                    formData.append('country', updatedData.country || '');
+                    formData.append('city', updatedData.city || '');
+                    formData.append('lastDonation', updatedData.lastDonation);
+                    formData.append('profilePicture', updatedData.profilePicture || '');
+
+                    const response = await fetch(this.webAppUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.updateInLocalStorage(id, updatedData);
+                        return true;
+                    }
+                    return false;
+                } catch (error) {
+                    console.error('Error updating donor via Google Apps Script:', error);
+                    return this.updateInLocalStorage(id, updatedData);
+                }
+            }
+
+            // Local storage fallback methods
+            loadFromLocalStorage() {
+                try {
+                    const stored = localStorage.getItem('bloodDonorsData');
+                    const donors = stored ? JSON.parse(stored) : [];
+                    console.log(`Loaded ${donors.length} donors from localStorage`);
+                    return donors;
+                } catch (e) {
+                    console.error('Error loading from localStorage:', e);
+                    return [];
+                }
+            }
+
+            saveToLocalStorage(donor) {
+                try {
+                    const donors = this.loadFromLocalStorage();
+                    donors.unshift(donor);
+                    localStorage.setItem('bloodDonorsData', JSON.stringify(donors));
+                    console.log('Saved donor to localStorage');
                     return true;
                 } catch (e) {
-                    console.error('Error saving donors to storage:', e);
+                    console.error('Error saving to localStorage:', e);
                     return false;
                 }
             }
 
-            // Simulate real-time data sharing
-            syncData() {
-                // In a real implementation, this would sync with a server/database
-                // For now, we'll just ensure data is saved properly
-                console.log('Data synchronized');
-            }
-
-            addDonor(donor) {
-                donor.id = this.generateId();
-                donor.createdAt = new Date().toISOString();
-                donor.updatedAt = new Date().toISOString();
-                this.donors.unshift(donor);
-                return this.saveDonors();
-            }
-
-            updateDonor(id, updatedData) {
-                const index = this.donors.findIndex(donor => donor.id === id);
-                if (index !== -1) {
-                    updatedData.updatedAt = new Date().toISOString();
-                    this.donors[index] = { ...this.donors[index], ...updatedData };
-                    return this.saveDonors();
-                }
-                return false;
-            }
-
-            deleteDonor(id) {
-                if (!this.isAdmin) {
-                    return false;
-                }
-                
-                const index = this.donors.findIndex(donor => donor.id === id);
-                if (index !== -1) {
-                    this.donors.splice(index, 1);
-                    return this.saveDonors();
+            updateInLocalStorage(id, updatedData) {
+                try {
+                    const donors = this.loadFromLocalStorage();
+                    const index = donors.findIndex(d => d.id === id);
+                    if (index !== -1) {
+                        updatedData.updatedAt = new Date().toISOString();
+                        donors[index] = { ...donors[index], ...updatedData };
+                        localStorage.setItem('bloodDonorsData', JSON.stringify(donors));
+                        console.log('Updated donor in localStorage');
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Error updating in localStorage:', e);
                 }
                 return false;
             }
@@ -928,43 +966,17 @@
                 return Date.now().toString(36) + Math.random().toString(36).substr(2);
             }
 
-            getDonors() {
-                return this.donors;
-            }
-
-            filterDonors(bloodType = '', location = '') {
-                return this.donors.filter(donor => {
-                    const matchesBloodType = !bloodType || donor.bloodType === bloodType;
-                    const matchesLocation = !location || 
-                        (donor.location && donor.location.toLowerCase().includes(location.toLowerCase()));
-                    return matchesBloodType && matchesLocation;
-                });
-            }
-
-            getStats() {
-                const total = this.donors.length;
-                const eligible = this.donors.filter(d => this.isEligibleToDonate(d.lastDonation)).length;
-                const universal = this.donors.filter(d => d.bloodType === "O-").length;
-                
-                return { total, eligible, universal };
-            }
-
             isEligibleToDonate(lastDonationDate) {
-                if (!lastDonationDate) return true; // If no date provided, assume eligible
-                
+                if (!lastDonationDate) return true;
                 const lastDonation = new Date(lastDonationDate);
                 const threeMonthsAgo = new Date();
                 threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-                
                 return lastDonation <= threeMonthsAgo;
             }
 
             getEligibilityStatus(lastDonationDate) {
                 if (!lastDonationDate) {
-                    return {
-                        eligible: true,
-                        message: "এখন রক্ত দিতে পারবে (কোনও পূর্ববর্তী দান তারিখ নেই)"
-                    };
+                    return { eligible: true, message: "এখন রক্ত দিতে পারবে" };
                 }
                 
                 const lastDonation = new Date(lastDonationDate);
@@ -972,127 +984,29 @@
                 threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
                 
                 if (lastDonation <= threeMonthsAgo) {
-                    return {
-                        eligible: true,
-                        message: "এখন রক্ত দিতে পারবে (তার ৩ মাস পূর্ণ হয়েছে)"
-                    };
+                    return { eligible: true, message: "এখন রক্ত দিতে পারবে (তার ৩ মাস পূর্ণ হয়েছে)" };
                 } else {
                     const nextDonationDate = new Date(lastDonation);
                     nextDonationDate.setMonth(lastDonation.getMonth() + 3);
-                    
                     const daysLeft = Math.ceil((nextDonationDate - new Date()) / (1000 * 60 * 60 * 24));
-                    
-                    return {
-                        eligible: false,
-                        message: `তার এখনো ৩ মাস পূর্ণ হয়নি রক্ত দিতে পারবে না (${daysLeft} দিন বাকি)`
-                    };
+                    return { eligible: false, message: `তার এখনো ৩ মাস পূর্ণ হয়নি রক্ত দিতে পারবে না (${daysLeft} দিন বাকি)` };
                 }
             }
 
-            exportData() {
-                const dataStr = JSON.stringify(this.donors, null, 2);
-                const dataBlob = new Blob([dataStr], {type: 'application/json'});
-                
-                const url = URL.createObjectURL(dataBlob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `blood-donors-${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            }
-
-            importData(fileData) {
-                if (!this.isAdmin) {
-                    return { success: false, message: "Admin access required" };
-                }
-                
-                try {
-                    let importedDonors;
-                    
-                    // Try to parse as JSON
-                    try {
-                        importedDonors = JSON.parse(fileData);
-                    } catch (e) {
-                        // If JSON parsing fails, try CSV
-                        importedDonors = this.parseCSV(fileData);
-                    }
-                    
-                    if (Array.isArray(importedDonors)) {
-                        let importedCount = 0;
-                        importedDonors.forEach(donor => {
-                            if (donor.name && donor.phone) {
-                                // Add imported donors with new IDs
-                                donor.id = this.generateId();
-                                donor.createdAt = new Date().toISOString();
-                                donor.updatedAt = new Date().toISOString();
-                                this.donors.push(donor);
-                                importedCount++;
-                            }
-                        });
-                        
-                        if (this.saveDonors()) {
-                            return { 
-                                success: true, 
-                                message: `Successfully imported ${importedCount} donors` 
-                            };
-                        } else {
-                            return { 
-                                success: false, 
-                                message: "Failed to save imported data" 
-                            };
-                        }
-                    } else {
-                        return { 
-                            success: false, 
-                            message: "Invalid file format" 
-                        };
-                    }
-                } catch (e) {
-                    console.error('Error importing data:', e);
-                    return { 
-                        success: false, 
-                        message: "Error processing file" 
-                    };
-                }
-            }
-
-            parseCSV(csvData) {
-                const lines = csvData.split('\n');
-                const headers = lines[0].split(',').map(h => h.trim());
-                const result = [];
-                
-                for (let i = 1; i < lines.length; i++) {
-                    if (!lines[i].trim()) continue;
-                    
-                    const obj = {};
-                    const currentline = lines[i].split(',');
-                    
-                    for (let j = 0; j < headers.length; j++) {
-                        obj[headers[j]] = currentline[j] ? currentline[j].trim() : '';
-                    }
-                    
-                    result.push(obj);
-                }
-                
-                return result;
-            }
-
-            checkAdminStatus() {
-                this.isAdmin = localStorage.getItem(this.adminKey) === 'true';
-                return this.isAdmin;
-            }
-
-            setAdminStatus(status) {
-                this.isAdmin = status;
-                localStorage.setItem(this.adminKey, status.toString());
-                return status;
+            getStats(donors) {
+                const total = donors.length;
+                const eligible = donors.filter(d => this.isEligibleToDonate(d.lastDonation)).length;
+                const universal = donors.filter(d => d.bloodType === "O-").length;
+                return { total, eligible, universal };
             }
         }
 
-        // Initialize data storage
-        const dataStorage = new DataStorage();
+        // =============================================
+        // APPLICATION CODE
+        // =============================================
+
+        // Initialize storage
+        const dataStorage = new GoogleAppsScriptStorage();
 
         // Notification system
         function showNotification(message, type = 'success') {
@@ -1108,18 +1022,15 @@
         // Tab switching functionality
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', function() {
-                // Update active tab
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
                 
-                // Show corresponding content
                 const tabId = this.getAttribute('data-tab');
                 document.querySelectorAll('.tab-content').forEach(content => {
                     content.classList.remove('active');
                 });
                 document.getElementById(`${tabId}-tab`).classList.add('active');
                 
-                // If switching to donors tab, refresh the display
                 if (tabId === 'donors') {
                     displayDonors();
                     updateStats();
@@ -1128,13 +1039,12 @@
         });
 
         // Function to display donors
-        function displayDonors(donors = null) {
+        async function displayDonors(donors = null) {
             const donorsList = document.getElementById('donorsList');
-            const donorsToDisplay = donors || dataStorage.getDonors();
+            const donorsToDisplay = donors || await dataStorage.loadDonors();
             const donorCountBadge = document.getElementById('donorCountBadge');
             
             donorCountBadge.textContent = `(${donorsToDisplay.length})`;
-            
             donorsList.innerHTML = '';
             
             if (donorsToDisplay.length === 0) {
@@ -1160,11 +1070,6 @@
                     `<button class="btn btn-outline btn-small edit-donor" data-id="${donor.id}">
                         <i class="fas fa-edit"></i> Update
                     </button>`;
-                    
-                const deleteButton = dataStorage.isAdmin ? 
-                    `<button class="btn btn-danger btn-small delete-donor" data-id="${donor.id}">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>` : '';
                 
                 donorCard.innerHTML = `
                     ${donor.profilePicture ? 
@@ -1175,7 +1080,7 @@
                     }
                     <div class="donor-blood">${donor.bloodType || 'Unknown'}</div>
                     <div class="donor-name">${donor.name}</div>
-                    <div class="donor-location">${donor.location || 'Location not specified'}</div>
+                    <div class="donor-location">${donor.location || (donor.city && donor.country ? `${donor.city}, ${donor.country}` : 'Location not specified')}</div>
                     <div class="donor-contact">
                         <a href="tel:${donor.phone}"><i class="fas fa-phone"></i> ${donor.phone}</a>
                     </div>
@@ -1185,18 +1090,9 @@
                     </div>
                     <div class="donor-actions">
                         ${editButton}
-                        ${deleteButton}
                     </div>
                 `;
                 donorsList.appendChild(donorCard);
-            });
-            
-            // Add event listeners to action buttons
-            document.querySelectorAll('.delete-donor').forEach(button => {
-                button.addEventListener('click', function() {
-                    const donorId = this.getAttribute('data-id');
-                    openDeleteModal(donorId);
-                });
             });
             
             document.querySelectorAll('.edit-donor').forEach(button => {
@@ -1208,47 +1104,24 @@
         }
 
         // Update statistics
-        function updateStats() {
-            const stats = dataStorage.getStats();
+        async function updateStats() {
+            const donors = await dataStorage.loadDonors();
+            const stats = dataStorage.getStats(donors);
             document.getElementById('totalDonors').textContent = stats.total;
             document.getElementById('eligibleDonors').textContent = stats.eligible;
             document.getElementById('universalDonors').textContent = stats.universal;
         }
 
         // Modal functions
-        function openDeleteModal(donorId) {
-            if (!dataStorage.isAdmin) {
-                showNotification('You do not have permission to delete donors.', 'error');
-                return;
-            }
+        async function openEditModal(donorId) {
+            const donors = await dataStorage.loadDonors();
+            const donor = donors.find(d => d.id === donorId);
             
-            const modal = document.getElementById('deleteModal');
-            modal.style.display = 'flex';
-            
-            document.getElementById('confirmDelete').onclick = function() {
-                if (dataStorage.deleteDonor(donorId)) {
-                    showNotification('Donor deleted successfully.', 'success');
-                    displayDonors();
-                    updateStats();
-                } else {
-                    showNotification('Failed to delete donor.', 'error');
-                }
-                modal.style.display = 'none';
-            };
-            
-            document.getElementById('cancelDelete').onclick = function() {
-                modal.style.display = 'none';
-            };
-        }
-
-        function openEditModal(donorId) {
-            const donor = dataStorage.getDonors().find(d => d.id === donorId);
             if (!donor) {
                 showNotification('Donor not found.', 'error');
                 return;
             }
             
-            // Populate form with donor data
             document.getElementById('editId').value = donor.id;
             document.getElementById('editName').value = donor.name || '';
             document.getElementById('editPhone').value = donor.phone || '';
@@ -1257,7 +1130,6 @@
             document.getElementById('editCountry').value = donor.country || '';
             document.getElementById('editCity').value = donor.city || '';
             
-            // Set profile picture preview
             const profilePreview = document.getElementById('profilePreview');
             if (donor.profilePicture) {
                 profilePreview.innerHTML = `<img src="${donor.profilePicture}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
@@ -1265,57 +1137,7 @@
                 profilePreview.innerHTML = '<i class="fas fa-user"></i>';
             }
             
-            const modal = document.getElementById('editModal');
-            modal.style.display = 'flex';
-        }
-
-        function openAdminLoginModal() {
-            const modal = document.getElementById('adminLoginModal');
-            modal.style.display = 'flex';
-            
-            document.getElementById('loginSubmit').onclick = function() {
-                const password = document.getElementById('adminPassword').value;
-                // In a real implementation, use a secure authentication method
-                if (password === 'admin123') { // Default password - change in production
-                    dataStorage.setAdminStatus(true);
-                    showNotification('Admin access granted.', 'success');
-                    displayDonors();
-                    updateAdminUI();
-                    modal.style.display = 'none';
-                } else {
-                    showNotification('Invalid password.', 'error');
-                }
-            };
-            
-            document.getElementById('loginCancel').onclick = function() {
-                modal.style.display = 'none';
-            };
-        }
-
-        function openImportModal() {
-            if (!dataStorage.isAdmin) {
-                showNotification('You need admin access to import data.', 'error');
-                return;
-            }
-            
-            const modal = document.getElementById('importModal');
-            modal.style.display = 'flex';
-            
-            // Reset file input
-            document.getElementById('fileInput').value = '';
-            document.getElementById('processImport').disabled = true;
-        }
-
-        function updateAdminUI() {
-            if (dataStorage.isAdmin) {
-                document.getElementById('adminLoginBtn').innerHTML = '<i class="fas fa-user-shield"></i> Admin Mode';
-                document.getElementById('adminLoginBtn').classList.add('btn-success');
-                document.getElementById('adminLoginBtn').classList.remove('btn-outline');
-            } else {
-                document.getElementById('adminLoginBtn').innerHTML = '<i class="fas fa-lock"></i> Admin Login';
-                document.getElementById('adminLoginBtn').classList.remove('btn-success');
-                document.getElementById('adminLoginBtn').classList.add('btn-outline');
-            }
+            document.getElementById('editModal').style.display = 'flex';
         }
 
         // Profile picture handling
@@ -1333,10 +1155,17 @@
         }
 
         // Form submission handler
-        document.getElementById('bloodDonorForm').addEventListener('submit', function(e) {
+        document.getElementById('bloodDonorForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Get form values
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitLoading = document.getElementById('submitLoading');
+            
+            submitText.style.display = 'none';
+            submitLoading.style.display = 'inline-block';
+            submitBtn.disabled = true;
+            
             const name = document.getElementById('name').value;
             const phone = document.getElementById('phone').value;
             const bloodType = document.getElementById('bloodType').value;
@@ -1344,77 +1173,85 @@
             const city = document.getElementById('city').value;
             const lastDonation = document.getElementById('lastDonation').value;
             
-            // Validate required fields
             if (!name || !phone || !lastDonation) {
                 showNotification('Please fill in all required fields (Name, Phone and Last Donation Date).', 'error');
+                submitText.style.display = 'inline-block';
+                submitLoading.style.display = 'none';
+                submitBtn.disabled = false;
                 return;
             }
             
-            // Get profile picture
-            const profilePictureInput = document.getElementById('registerProfilePicture');
-            let profilePicture = null;
-            if (profilePictureInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    // Create new donor object
+            try {
+                const profilePictureInput = document.getElementById('registerProfilePicture');
+                let profilePicture = null;
+                
+                if (profilePictureInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = async function(e) {
+                        const newDonor = {
+                            name,
+                            bloodType,
+                            country,
+                            city,
+                            phone,
+                            lastDonation,
+                            profilePicture: e.target.result
+                        };
+                        
+                        const success = await dataStorage.addDonor(newDonor);
+                        
+                        if (success) {
+                            await displayDonors();
+                            await updateStats();
+                            showNotification('Thank you for registering as a blood donor! Your information has been added to our database.', 'success');
+                            document.getElementById('bloodDonorForm').reset();
+                            document.getElementById('registerProfilePreview').innerHTML = '<i class="fas fa-user"></i>';
+                        } else {
+                            showNotification('There was an error saving your information. Please try again.', 'error');
+                        }
+                        
+                        submitText.style.display = 'inline-block';
+                        submitLoading.style.display = 'none';
+                        submitBtn.disabled = false;
+                    };
+                    reader.readAsDataURL(profilePictureInput.files[0]);
+                } else {
                     const newDonor = {
                         name,
                         bloodType,
                         country,
                         city,
                         phone,
-                        lastDonation,
-                        profilePicture: e.target.result
+                        lastDonation
                     };
                     
-                    // Add to data storage
-                    if (dataStorage.addDonor(newDonor)) {
-                        // Update donors display
-                        displayDonors();
-                        updateStats();
-                        
-                        // Show success message
+                    const success = await dataStorage.addDonor(newDonor);
+                    
+                    if (success) {
+                        await displayDonors();
+                        await updateStats();
                         showNotification('Thank you for registering as a blood donor! Your information has been added to our database.', 'success');
-                        
-                        // Reset form
-                        document.getElementById('bloodDonorForm').reset();
+                        this.reset();
                         document.getElementById('registerProfilePreview').innerHTML = '<i class="fas fa-user"></i>';
                     } else {
                         showNotification('There was an error saving your information. Please try again.', 'error');
                     }
-                };
-                reader.readAsDataURL(profilePictureInput.files[0]);
-            } else {
-                // Create new donor object without profile picture
-                const newDonor = {
-                    name,
-                    bloodType,
-                    country,
-                    city,
-                    phone,
-                    lastDonation
-                };
-                
-                // Add to data storage
-                if (dataStorage.addDonor(newDonor)) {
-                    // Update donors display
-                    displayDonors();
-                    updateStats();
                     
-                    // Show success message
-                    showNotification('Thank you for registering as a blood donor! Your information has been added to our database.', 'success');
-                    
-                    // Reset form
-                    this.reset();
-                    document.getElementById('registerProfilePreview').innerHTML = '<i class="fas fa-user"></i>';
-                } else {
-                    showNotification('There was an error saving your information. Please try again.', 'error');
+                    submitText.style.display = 'inline-block';
+                    submitLoading.style.display = 'none';
+                    submitBtn.disabled = false;
                 }
+            } catch (error) {
+                console.error('Error in form submission:', error);
+                showNotification('There was an error saving your information. Please try again.', 'error');
+                submitText.style.display = 'inline-block';
+                submitLoading.style.display = 'none';
+                submitBtn.disabled = false;
             }
         });
 
         // Edit form submission handler
-        document.getElementById('editDonorForm').addEventListener('submit', function(e) {
+        document.getElementById('editDonorForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const id = document.getElementById('editId').value;
@@ -1427,15 +1264,15 @@
                 lastDonation: document.getElementById('editLastDonation').value
             };
             
-            // Get profile picture if changed
             const profilePictureInput = document.getElementById('editProfilePicture');
             if (profilePictureInput.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = async function(e) {
                     updatedData.profilePicture = e.target.result;
-                    if (dataStorage.updateDonor(id, updatedData)) {
+                    const success = await dataStorage.updateDonor(id, updatedData);
+                    if (success) {
                         showNotification('Your information updated successfully.', 'success');
-                        displayDonors();
+                        await displayDonors();
                         document.getElementById('editModal').style.display = 'none';
                     } else {
                         showNotification('Failed to update your information.', 'error');
@@ -1443,9 +1280,10 @@
                 };
                 reader.readAsDataURL(profilePictureInput.files[0]);
             } else {
-                if (dataStorage.updateDonor(id, updatedData)) {
+                const success = await dataStorage.updateDonor(id, updatedData);
+                if (success) {
                     showNotification('Your information updated successfully.', 'success');
-                    displayDonors();
+                    await displayDonors();
                     document.getElementById('editModal').style.display = 'none';
                 } else {
                     showNotification('Failed to update your information.', 'error');
@@ -1454,71 +1292,54 @@
         });
 
         // Filter functionality
-        document.getElementById('filterBloodType').addEventListener('change', applyFilters);
-        document.getElementById('filterLocation').addEventListener('input', applyFilters);
-        document.getElementById('clearFilters').addEventListener('click', clearFilters);
-
-        function applyFilters() {
+        async function applyFilters() {
             const bloodType = document.getElementById('filterBloodType').value;
             const location = document.getElementById('filterLocation').value;
             
-            const filteredDonors = dataStorage.filterDonors(bloodType, location);
+            const allDonors = await dataStorage.loadDonors();
+            const filteredDonors = allDonors.filter(donor => {
+                const matchesBloodType = !bloodType || donor.bloodType === bloodType;
+                const donorLocation = donor.city && donor.country ? `${donor.city}, ${donor.country}` : donor.city || donor.country || '';
+                const matchesLocation = !location || donorLocation.toLowerCase().includes(location.toLowerCase());
+                return matchesBloodType && matchesLocation;
+            });
+            
             displayDonors(filteredDonors);
         }
 
-        function clearFilters() {
+        document.getElementById('filterBloodType').addEventListener('change', applyFilters);
+        document.getElementById('filterLocation').addEventListener('input', applyFilters);
+        
+        document.getElementById('clearFilters').addEventListener('click', function() {
             document.getElementById('filterBloodType').value = '';
             document.getElementById('filterLocation').value = '';
             displayDonors();
-        }
+        });
 
         // Export functionality
-        document.getElementById('exportBtn').addEventListener('click', function() {
-            dataStorage.exportData();
+        document.getElementById('exportBtn').addEventListener('click', async function() {
+            const donors = await dataStorage.loadDonors();
+            const dataStr = JSON.stringify(donors, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `blood-donors-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
             showNotification('Data exported successfully.', 'info');
         });
 
-        // Import functionality
-        document.getElementById('importBtn').addEventListener('click', openImportModal);
-
-        // File input handling
-        document.getElementById('fileInput').addEventListener('change', function() {
-            document.getElementById('processImport').disabled = !this.files.length;
-        });
-
-        // Process import
-        document.getElementById('processImport').addEventListener('click', function() {
-            const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) {
-                showNotification('Please select a file to import.', 'error');
-                return;
-            }
-            
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const result = dataStorage.importData(e.target.result);
-                if (result.success) {
-                    showNotification(result.message, 'success');
-                    displayDonors();
-                    updateStats();
-                    document.getElementById('importModal').style.display = 'none';
-                } else {
-                    showNotification(result.message, 'error');
-                }
-            };
-            
-            reader.onerror = function() {
-                showNotification('Error reading file.', 'error');
-            };
-            
-            reader.readAsText(file);
-        });
-
-        // Cancel import
-        document.getElementById('cancelImport').addEventListener('click', function() {
-            document.getElementById('importModal').style.display = 'none';
+        // Refresh functionality
+        document.getElementById('refreshBtn').addEventListener('click', async function() {
+            showNotification('Refreshing data...', 'info');
+            await displayDonors();
+            await updateStats();
+            showNotification('Data refreshed successfully.', 'success');
         });
 
         // Cancel edit
@@ -1526,16 +1347,10 @@
             document.getElementById('editModal').style.display = 'none';
         });
 
-        // Admin login
-        document.getElementById('adminLoginBtn').addEventListener('click', openAdminLoginModal);
-
         // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            displayDonors();
-            updateStats();
-            updateAdminUI();
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Initializing application...');
             
-            // Set up profile picture upload handlers
             handleProfilePictureUpload(
                 document.getElementById('registerProfilePicture'),
                 document.getElementById('registerProfilePreview')
@@ -1546,9 +1361,10 @@
                 document.getElementById('profilePreview')
             );
             
-            // Update donor count badge
-            const donorCount = dataStorage.getDonors().length;
-            document.getElementById('donorCountBadge').textContent = `(${donorCount})`;
+            await displayDonors();
+            await updateStats();
+            
+            console.log('Application initialized successfully');
         });
     </script>
 </body>
