@@ -817,105 +817,114 @@
         // =============================================
         
         class GoogleAppsScriptStorage {
-            constructor() {
-                // 🔴 REPLACE THIS URL AFTER DEPLOYING YOUR GOOGLE APPS SCRIPT:
-                this.webAppUrl = 'https://script.google.com/macros/s/AKfycbyZkqErKTWSDYnkI3T7KLFGb_DE563ez0SXicUGc7VgQNdEoD_uwaDTQEteG_YSrbJQ/exec';
-            }
-
-            async loadDonors() {
-                try {
-                    console.log('Loading donors from Google Apps Script...');
-                    const response = await fetch(`${this.webAppUrl}?action=getDonors`);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const donors = await response.json();
-                    console.log(`Loaded ${donors.length} donors from Google Apps Script`);
-                    return donors;
-                } catch (error) {
-                    console.error('Error loading from Google Apps Script:', error);
-                    return this.loadFromLocalStorage();
-                }
-            }
-
-            async addDonor(donor) {
-    try {
-        console.log('Adding donor via Google Apps Script...');
-        
-        const formData = new FormData();
-        formData.append('action', 'addDonor');
-        formData.append('name', donor.name);
-        formData.append('phone', donor.phone);
-        formData.append('bloodType', donor.bloodType || '');
-        formData.append('country', donor.country || '');
-        formData.append('city', donor.city || '');
-        formData.append('lastDonation', donor.lastDonation);
-        formData.append('profilePicture', donor.profilePicture || '');
-
-        const response = await fetch(this.webAppUrl, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        if (result.success) {
-            donor.id = result.id;
-            donor.createdAt = new Date().toISOString();
-            donor.updatedAt = new Date().toISOString();
-            // ✅ REMOVED localStorage call
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error('Error adding donor via Google Apps Script:', error);
-        // ✅ Just return false, don't try localStorage
-        return false;
+    constructor() {
+        this.webAppUrl = 'https://script.google.com/macros/s/AKfycbyZkqErKTWSDYnkI3T7KLFGb_DE563ez0SXicUGc7VgQNdEoD_uwaDTQEteG_YSrbJQ/exec';
     }
-}
 
-            async updateDonor(id, updatedData) {
-                try {
-                    console.log('Updating donor via Google Apps Script...');
-                    
-                    const formData = new FormData();
-                    formData.append('action', 'updateDonor');
-                    formData.append('id', id);
-                    formData.append('name', updatedData.name);
-                    formData.append('phone', updatedData.phone);
-                    formData.append('bloodType', updatedData.bloodType || '');
-                    formData.append('country', updatedData.country || '');
-                    formData.append('city', updatedData.city || '');
-                    formData.append('lastDonation', updatedData.lastDonation);
-                    formData.append('profilePicture', updatedData.profilePicture || '');
-
-                    const response = await fetch(this.webAppUrl, {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        this.updateInLocalStorage(id, updatedData);
-                        return true;
-                    }
-                    return false;
-                } catch (error) {
-                    console.error('Error updating donor via Google Apps Script:', error);
-                    return this.updateInLocalStorage(id, updatedData);
-                }
+    async loadDonors() {
+        try {
+            console.log('Loading donors from Google Apps Script...');
+            const response = await fetch(`${this.webAppUrl}?action=getDonors`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const result = await response.json();
+            
+            // NEW: Handle the wrapped response
+            if (result.status === 200) {
+                console.log(`Loaded ${result.data.length} donors from Google Apps Script`);
+                return result.data; // Return the actual data
+            } else {
+                throw new Error(result.data.error);
+            }
+        } catch (error) {
+            console.error('Error loading from Google Apps Script:', error);
+            return [];
+        }
+    }
+
+    async addDonor(donor) {
+        try {
+            console.log('Adding donor via Google Apps Script...');
+            
+            const formData = new FormData();
+            formData.append('action', 'addDonor');
+            formData.append('name', donor.name);
+            formData.append('phone', donor.phone);
+            formData.append('bloodType', donor.bloodType || '');
+            formData.append('country', donor.country || '');
+            formData.append('city', donor.city || '');
+            formData.append('lastDonation', donor.lastDonation);
+            formData.append('profilePicture', donor.profilePicture || '');
+
+            const response = await fetch(this.webAppUrl, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            // NEW: Handle the wrapped response
+            if (result.status === 200 && result.data.success) {
+                donor.id = result.data.id;
+                donor.createdAt = new Date().toISOString();
+                donor.updatedAt = new Date().toISOString();
+                return true;
+            } else {
+                throw new Error(result.data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Error adding donor via Google Apps Script:', error);
+            return false;
+        }
+    }
+
+    async updateDonor(id, updatedData) {
+        try {
+            console.log('Updating donor via Google Apps Script...');
+            
+            const formData = new FormData();
+            formData.append('action', 'updateDonor');
+            formData.append('id', id);
+            formData.append('name', updatedData.name);
+            formData.append('phone', updatedData.phone);
+            formData.append('bloodType', updatedData.bloodType || '');
+            formData.append('country', updatedData.country || '');
+            formData.append('city', updatedData.city || '');
+            formData.append('lastDonation', updatedData.lastDonation);
+            formData.append('profilePicture', updatedData.profilePicture || '');
+
+            const response = await fetch(this.webAppUrl, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            // NEW: Handle the wrapped response
+            if (result.status === 200 && result.data.success) {
+                return true;
+            } else {
+                throw new Error(result.data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Error updating donor via Google Apps Script:', error);
+            return false;
+        }
+    }
+
+    // ... rest of your methods (remove localStorage calls) ...
+}
 
             // Local storage fallback methods
             loadFromLocalStorage() {
