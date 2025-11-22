@@ -841,46 +841,44 @@
             }
 
             async addDonor(donor) {
-                try {
-                    console.log('Adding donor via Google Apps Script...');
-                    
-                    const formData = new FormData();
-                    formData.append('action', 'addDonor');
-                    formData.append('name', donor.name);
-                    formData.append('phone', donor.phone);
-                    formData.append('bloodType', donor.bloodType || '');
-                    formData.append('country', donor.country || '');
-                    formData.append('city', donor.city || '');
-                    formData.append('lastDonation', donor.lastDonation);
-                    formData.append('profilePicture', donor.profilePicture || '');
+    try {
+        console.log('Adding donor via Google Apps Script...');
+        
+        const formData = new FormData();
+        formData.append('action', 'addDonor');
+        formData.append('name', donor.name);
+        formData.append('phone', donor.phone);
+        formData.append('bloodType', donor.bloodType || '');
+        formData.append('country', donor.country || '');
+        formData.append('city', donor.city || '');
+        formData.append('lastDonation', donor.lastDonation);
+        formData.append('profilePicture', donor.profilePicture || '');
 
-                    const response = await fetch(this.webAppUrl, {
-                        method: 'POST',
-                        body: formData
-                    });
+        const response = await fetch(this.webAppUrl, {
+            method: 'POST',
+            body: formData
+        });
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        donor.id = result.id;
-                        donor.createdAt = new Date().toISOString();
-                        donor.updatedAt = new Date().toISOString();
-                        this.saveToLocalStorage(donor);
-                        return true;
-                    }
-                    return false;
-                } catch (error) {
-                    console.error('Error adding donor via Google Apps Script:', error);
-                    donor.id = this.generateId();
-                    donor.createdAt = new Date().toISOString();
-                    donor.updatedAt = new Date().toISOString();
-                    return this.saveToLocalStorage(donor);
-                }
-            }
+        const result = await response.json();
+        
+        if (result.success) {
+            donor.id = result.id;
+            donor.createdAt = new Date().toISOString();
+            donor.updatedAt = new Date().toISOString();
+            // ✅ REMOVED localStorage call
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error adding donor via Google Apps Script:', error);
+        // ✅ Just return false, don't try localStorage
+        return false;
+    }
+}
 
             async updateDonor(id, updatedData) {
                 try {
