@@ -89,6 +89,10 @@
             transition: all 0.3s;
             border-bottom: 3px solid transparent;
             color: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
         .tab.active {
@@ -268,11 +272,22 @@
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
             transition: all 0.3s;
             border-left: 4px solid var(--primary);
+            text-align: center;
         }
 
         .donor-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-picture {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            margin: 0 auto 15px;
+            display: block;
         }
 
         .donor-blood {
@@ -309,10 +324,34 @@
             margin-bottom: 10px;
         }
 
+        .donor-status {
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .status-eligible {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-not-eligible {
+            background-color: rgba(244, 67, 54, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
         .donor-actions {
             margin-top: 15px;
             display: flex;
             gap: 10px;
+            justify-content: center;
         }
 
         .notification {
@@ -474,6 +513,28 @@
             color: var(--secondary);
         }
 
+        .profile-picture-upload {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .profile-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray);
+            font-size: 3rem;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -527,8 +588,14 @@
 
         <!-- Tabs -->
         <div class="tabs">
-            <div class="tab active" data-tab="register">Register as Donor</div>
-            <div class="tab" data-tab="donors">Find Donors <span id="donorCountBadge">(0)</span></div>
+            <div class="tab active" data-tab="register">
+                <i class="fas fa-user-plus"></i>
+                Register as Donor
+            </div>
+            <div class="tab" data-tab="donors">
+                <i class="fas fa-users"></i>
+                Find Donors <span id="donorCountBadge">(0)</span>
+            </div>
         </div>
 
         <!-- Notification -->
@@ -563,30 +630,32 @@
         <!-- Edit Donor Modal -->
         <div id="editModal" class="modal">
             <div class="modal-content">
-                <h3 class="modal-title">Edit Donor Information</h3>
+                <h3 class="modal-title">Update Your Information</h3>
                 <form id="editDonorForm">
                     <input type="hidden" id="editId">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="editFirstName">First Name *</label>
-                            <input type="text" id="editFirstName" class="form-control" required>
+                    
+                    <div class="profile-picture-upload">
+                        <div class="profile-preview" id="profilePreview">
+                            <i class="fas fa-user"></i>
                         </div>
-                        <div class="form-group">
-                            <label for="editLastName">Last Name *</label>
-                            <input type="text" id="editLastName" class="form-control" required>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="editProfilePicture" accept="image/*">
+                            <div class="file-input-label">
+                                <i class="fas fa-camera"></i>
+                                <span>Change Profile Picture</span>
+                            </div>
                         </div>
                     </div>
+                    
+                    <div class="form-group">
+                        <label for="editName">Full Name *</label>
+                        <input type="text" id="editName" class="form-control" required>
+                    </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label for="editEmail">Email Address</label>
-                            <input type="email" id="editEmail" class="form-control">
-                        </div>
                         <div class="form-group">
                             <label for="editPhone">Phone Number *</label>
                             <input type="tel" id="editPhone" class="form-control" required>
                         </div>
-                    </div>
-                    <div class="form-row">
                         <div class="form-group">
                             <label for="editBloodType">Blood Type</label>
                             <select id="editBloodType" class="form-control">
@@ -601,10 +670,6 @@
                                 <option value="O-">O-</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="editLastDonation">Last Donation Date</label>
-                            <input type="date" id="editLastDonation" class="form-control">
-                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -617,17 +682,11 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="editAvailability">Availability</label>
-                        <select id="editAvailability" class="form-control">
-                            <option value="">Select Availability</option>
-                            <option value="Immediately">Immediately</option>
-                            <option value="Within a week">Within a week</option>
-                            <option value="Within a month">Within a month</option>
-                            <option value="When needed">When needed</option>
-                        </select>
+                        <label for="editLastDonation">Last Donation Date *</label>
+                        <input type="date" id="editLastDonation" class="form-control" required>
                     </div>
                     <div class="modal-actions">
-                        <button type="submit" class="btn">Update Donor</button>
+                        <button type="submit" class="btn">Update Information</button>
                         <button type="button" id="cancelEdit" class="btn btn-outline">Cancel</button>
                     </div>
                 </form>
@@ -659,31 +718,36 @@
 
         <!-- Register Tab Content -->
         <div class="tab-content active" id="register-tab">
-            <h2 class="section-title">Register as a Blood Donor <small>* Required fields: Name and Phone</small></h2>
+            <h2 class="section-title">
+                <i class="fas fa-user-plus"></i>
+                Register as a Blood Donor 
+                <small>* Required fields: Name, Phone and Last Donation Date</small>
+            </h2>
             
             <div class="form-container">
                 <form id="bloodDonorForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="firstName">First Name *</label>
-                            <input type="text" id="firstName" class="form-control" required>
+                    <div class="profile-picture-upload">
+                        <div class="profile-preview" id="registerProfilePreview">
+                            <i class="fas fa-user"></i>
                         </div>
-                        <div class="form-group">
-                            <label for="lastName">Last Name *</label>
-                            <input type="text" id="lastName" class="form-control" required>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="registerProfilePicture" accept="image/*">
+                            <div class="file-input-label">
+                                <i class="fas fa-camera"></i>
+                                <span>Add Profile Picture</span>
+                            </div>
                         </div>
                     </div>
+                    
+                    <div class="form-group">
+                        <label for="name">Full Name *</label>
+                        <input type="text" id="name" class="form-control" required>
+                    </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label for="email">Email Address</label>
-                            <input type="email" id="email" class="form-control">
-                        </div>
                         <div class="form-group">
                             <label for="phone">Phone Number *</label>
                             <input type="tel" id="phone" class="form-control" required>
                         </div>
-                    </div>
-                    <div class="form-row">
                         <div class="form-group">
                             <label for="bloodType">Blood Type</label>
                             <select id="bloodType" class="form-control">
@@ -698,10 +762,6 @@
                                 <option value="O-">O-</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="lastDonation">Last Donation Date</label>
-                            <input type="date" id="lastDonation" class="form-control">
-                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -714,14 +774,8 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="availability">Availability</label>
-                        <select id="availability" class="form-control">
-                            <option value="">Select Availability</option>
-                            <option value="Immediately">Immediately</option>
-                            <option value="Within a week">Within a week</option>
-                            <option value="Within a month">Within a month</option>
-                            <option value="When needed">When needed</option>
-                        </select>
+                        <label for="lastDonation">Last Donation Date *</label>
+                        <input type="date" id="lastDonation" class="form-control" required>
                     </div>
                     <div class="form-group">
                         <label>
@@ -738,7 +792,10 @@
 
         <!-- Find Donors Tab Content -->
         <div class="tab-content" id="donors-tab">
-            <h2 class="section-title">Find Blood Donors</h2>
+            <h2 class="section-title">
+                <i class="fas fa-users"></i>
+                Find Blood Donors
+            </h2>
             
             <div class="stats">
                 <div class="stat-card">
@@ -746,8 +803,8 @@
                     <div class="stat-label">Total Donors</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="availableDonors">0</div>
-                    <div class="stat-label">Available Now</div>
+                    <div class="stat-value" id="eligibleDonors">0</div>
+                    <div class="stat-label">Eligible Now</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="universalDonors">0</div>
@@ -790,7 +847,7 @@
     </div>
 
     <script>
-        // Data storage using localStorage with GitHub Pages backup
+        // Data storage using localStorage with real-time sharing simulation
         class DataStorage {
             constructor() {
                 this.storageKey = 'bloodDonorsData';
@@ -798,6 +855,9 @@
                 this.isAdmin = false;
                 this.donors = this.loadDonors();
                 this.checkAdminStatus();
+                
+                // Simulate real-time data sharing between users
+                this.syncData();
             }
 
             loadDonors() {
@@ -810,56 +870,15 @@
                     console.error('Error loading donors from storage:', e);
                 }
                 
-                // Return sample data if no stored data exists
-                return [
-                    {
-                        id: this.generateId(),
-                        name: "John Smith",
-                        firstName: "John",
-                        lastName: "Smith",
-                        bloodType: "O+",
-                        location: "New York, USA",
-                        country: "USA",
-                        city: "New York",
-                        email: "john.smith@example.com",
-                        phone: "+1 (555) 123-4567",
-                        availability: "Immediately",
-                        lastDonation: "2023-05-15"
-                    },
-                    {
-                        id: this.generateId(),
-                        name: "Maria Garcia",
-                        firstName: "Maria",
-                        lastName: "Garcia",
-                        bloodType: "A-",
-                        location: "Madrid, Spain",
-                        country: "Spain",
-                        city: "Madrid",
-                        email: "maria.garcia@example.com",
-                        phone: "+34 912 345 678",
-                        availability: "Within a week",
-                        lastDonation: "2023-04-20"
-                    },
-                    {
-                        id: this.generateId(),
-                        name: "Ahmed Hassan",
-                        firstName: "Ahmed",
-                        lastName: "Hassan",
-                        bloodType: "B+",
-                        location: "Cairo, Egypt",
-                        country: "Egypt",
-                        city: "Cairo",
-                        email: "ahmed.hassan@example.com",
-                        phone: "+20 2 1234 5678",
-                        availability: "When needed",
-                        lastDonation: "2023-03-10"
-                    }
-                ];
+                // Return empty array if no stored data exists
+                return [];
             }
 
             saveDonors() {
                 try {
                     localStorage.setItem(this.storageKey, JSON.stringify(this.donors));
+                    // Simulate data sharing - in a real app, this would sync with a server
+                    this.syncData();
                     return true;
                 } catch (e) {
                     console.error('Error saving donors to storage:', e);
@@ -867,27 +886,25 @@
                 }
             }
 
+            // Simulate real-time data sharing
+            syncData() {
+                // In a real implementation, this would sync with a server/database
+                // For now, we'll just ensure data is saved properly
+                console.log('Data synchronized');
+            }
+
             addDonor(donor) {
                 donor.id = this.generateId();
                 donor.createdAt = new Date().toISOString();
-                donor.name = `${donor.firstName} ${donor.lastName}`;
-                donor.location = donor.city && donor.country ? `${donor.city}, ${donor.country}` : donor.city || donor.country || '';
+                donor.updatedAt = new Date().toISOString();
                 this.donors.unshift(donor);
                 return this.saveDonors();
             }
 
             updateDonor(id, updatedData) {
-                if (!this.isAdmin) {
-                    return false;
-                }
-                
                 const index = this.donors.findIndex(donor => donor.id === id);
                 if (index !== -1) {
-                    updatedData.name = `${updatedData.firstName} ${updatedData.lastName}`;
-                    updatedData.location = updatedData.city && updatedData.country ? 
-                        `${updatedData.city}, ${updatedData.country}` : 
-                        updatedData.city || updatedData.country || '';
-                    
+                    updatedData.updatedAt = new Date().toISOString();
                     this.donors[index] = { ...this.donors[index], ...updatedData };
                     return this.saveDonors();
                 }
@@ -919,17 +936,57 @@
                 return this.donors.filter(donor => {
                     const matchesBloodType = !bloodType || donor.bloodType === bloodType;
                     const matchesLocation = !location || 
-                        donor.location.toLowerCase().includes(location.toLowerCase());
+                        (donor.location && donor.location.toLowerCase().includes(location.toLowerCase()));
                     return matchesBloodType && matchesLocation;
                 });
             }
 
             getStats() {
                 const total = this.donors.length;
-                const available = this.donors.filter(d => d.availability === "Immediately").length;
+                const eligible = this.donors.filter(d => this.isEligibleToDonate(d.lastDonation)).length;
                 const universal = this.donors.filter(d => d.bloodType === "O-").length;
                 
-                return { total, available, universal };
+                return { total, eligible, universal };
+            }
+
+            isEligibleToDonate(lastDonationDate) {
+                if (!lastDonationDate) return true; // If no date provided, assume eligible
+                
+                const lastDonation = new Date(lastDonationDate);
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                
+                return lastDonation <= threeMonthsAgo;
+            }
+
+            getEligibilityStatus(lastDonationDate) {
+                if (!lastDonationDate) {
+                    return {
+                        eligible: true,
+                        message: "এখন রক্ত দিতে পারবে (কোনও পূর্ববর্তী দান তারিখ নেই)"
+                    };
+                }
+                
+                const lastDonation = new Date(lastDonationDate);
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                
+                if (lastDonation <= threeMonthsAgo) {
+                    return {
+                        eligible: true,
+                        message: "এখন রক্ত দিতে পারবে (তার ৩ মাস পূর্ণ হয়েছে)"
+                    };
+                } else {
+                    const nextDonationDate = new Date(lastDonation);
+                    nextDonationDate.setMonth(lastDonation.getMonth() + 3);
+                    
+                    const daysLeft = Math.ceil((nextDonationDate - new Date()) / (1000 * 60 * 60 * 24));
+                    
+                    return {
+                        eligible: false,
+                        message: `তার এখনো ৩ মাস পূর্ণ হয়নি রক্ত দিতে পারবে না (${daysLeft} দিন বাকি)`
+                    };
+                }
             }
 
             exportData() {
@@ -965,14 +1022,11 @@
                     if (Array.isArray(importedDonors)) {
                         let importedCount = 0;
                         importedDonors.forEach(donor => {
-                            if (donor.firstName && donor.lastName && donor.phone) {
+                            if (donor.name && donor.phone) {
                                 // Add imported donors with new IDs
                                 donor.id = this.generateId();
                                 donor.createdAt = new Date().toISOString();
-                                donor.name = `${donor.firstName} ${donor.lastName}`;
-                                donor.location = donor.city && donor.country ? 
-                                    `${donor.city}, ${donor.country}` : 
-                                    donor.city || donor.country || '';
+                                donor.updatedAt = new Date().toISOString();
                                 this.donors.push(donor);
                                 importedCount++;
                             }
@@ -1088,20 +1142,24 @@
                     <div class="empty-state">
                         <i class="fas fa-user-slash"></i>
                         <h3>No donors found</h3>
-                        <p>No donors match your search criteria. Try changing your filters or register as a donor.</p>
+                        <p>No donors are currently registered. Be the first to register as a blood donor!</p>
                     </div>
                 `;
                 return;
             }
             
             donorsToDisplay.forEach(donor => {
+                const eligibility = dataStorage.getEligibilityStatus(donor.lastDonation);
+                const statusClass = eligibility.eligible ? 'status-eligible' : 'status-not-eligible';
+                const statusIcon = eligibility.eligible ? 'fa-check-circle' : 'fa-times-circle';
+                
                 const donorCard = document.createElement('div');
                 donorCard.className = 'donor-card';
                 
-                const editButton = dataStorage.isAdmin ? 
+                const editButton = 
                     `<button class="btn btn-outline btn-small edit-donor" data-id="${donor.id}">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>` : '';
+                        <i class="fas fa-edit"></i> Update
+                    </button>`;
                     
                 const deleteButton = dataStorage.isAdmin ? 
                     `<button class="btn btn-danger btn-small delete-donor" data-id="${donor.id}">
@@ -1109,14 +1167,22 @@
                     </button>` : '';
                 
                 donorCard.innerHTML = `
+                    ${donor.profilePicture ? 
+                        `<img src="${donor.profilePicture}" class="profile-picture" alt="${donor.name}">` :
+                        `<div class="profile-picture">
+                            <i class="fas fa-user"></i>
+                        </div>`
+                    }
                     <div class="donor-blood">${donor.bloodType || 'Unknown'}</div>
                     <div class="donor-name">${donor.name}</div>
                     <div class="donor-location">${donor.location || 'Location not specified'}</div>
                     <div class="donor-contact">
-                        ${donor.phone ? `<a href="tel:${donor.phone}"><i class="fas fa-phone"></i> ${donor.phone}</a>` : ''}
-                        ${donor.email ? `<a href="mailto:${donor.email}"><i class="fas fa-envelope"></i> ${donor.email}</a>` : ''}
+                        <a href="tel:${donor.phone}"><i class="fas fa-phone"></i> ${donor.phone}</a>
                     </div>
-                    <div class="donor-availability">Available: ${donor.availability || 'Not specified'}</div>
+                    <div class="donor-status ${statusClass}">
+                        <i class="fas ${statusIcon}"></i>
+                        ${eligibility.message}
+                    </div>
                     <div class="donor-actions">
                         ${editButton}
                         ${deleteButton}
@@ -1145,7 +1211,7 @@
         function updateStats() {
             const stats = dataStorage.getStats();
             document.getElementById('totalDonors').textContent = stats.total;
-            document.getElementById('availableDonors').textContent = stats.available;
+            document.getElementById('eligibleDonors').textContent = stats.eligible;
             document.getElementById('universalDonors').textContent = stats.universal;
         }
 
@@ -1176,11 +1242,6 @@
         }
 
         function openEditModal(donorId) {
-            if (!dataStorage.isAdmin) {
-                showNotification('You do not have permission to edit donors.', 'error');
-                return;
-            }
-            
             const donor = dataStorage.getDonors().find(d => d.id === donorId);
             if (!donor) {
                 showNotification('Donor not found.', 'error');
@@ -1189,15 +1250,20 @@
             
             // Populate form with donor data
             document.getElementById('editId').value = donor.id;
-            document.getElementById('editFirstName').value = donor.firstName || '';
-            document.getElementById('editLastName').value = donor.lastName || '';
-            document.getElementById('editEmail').value = donor.email || '';
+            document.getElementById('editName').value = donor.name || '';
             document.getElementById('editPhone').value = donor.phone || '';
             document.getElementById('editBloodType').value = donor.bloodType || '';
             document.getElementById('editLastDonation').value = donor.lastDonation || '';
             document.getElementById('editCountry').value = donor.country || '';
             document.getElementById('editCity').value = donor.city || '';
-            document.getElementById('editAvailability').value = donor.availability || '';
+            
+            // Set profile picture preview
+            const profilePreview = document.getElementById('profilePreview');
+            if (donor.profilePicture) {
+                profilePreview.innerHTML = `<img src="${donor.profilePicture}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            } else {
+                profilePreview.innerHTML = '<i class="fas fa-user"></i>';
+            }
             
             const modal = document.getElementById('editModal');
             modal.style.display = 'flex';
@@ -1252,53 +1318,98 @@
             }
         }
 
+        // Profile picture handling
+        function handleProfilePictureUpload(inputElement, previewElement) {
+            inputElement.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewElement.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
         // Form submission handler
         document.getElementById('bloodDonorForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             // Get form values
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
-            const email = document.getElementById('email').value;
+            const name = document.getElementById('name').value;
             const phone = document.getElementById('phone').value;
             const bloodType = document.getElementById('bloodType').value;
             const country = document.getElementById('country').value;
             const city = document.getElementById('city').value;
-            const availability = document.getElementById('availability').value;
             const lastDonation = document.getElementById('lastDonation').value;
             
             // Validate required fields
-            if (!firstName || !lastName || !phone) {
-                showNotification('Please fill in all required fields (Name and Phone).', 'error');
+            if (!name || !phone || !lastDonation) {
+                showNotification('Please fill in all required fields (Name, Phone and Last Donation Date).', 'error');
                 return;
             }
             
-            // Create new donor object
-            const newDonor = {
-                firstName,
-                lastName,
-                bloodType,
-                country,
-                city,
-                email,
-                phone,
-                availability,
-                lastDonation
-            };
-            
-            // Add to data storage
-            if (dataStorage.addDonor(newDonor)) {
-                // Update donors display
-                displayDonors();
-                updateStats();
-                
-                // Show success message
-                showNotification('Thank you for registering as a blood donor! Your information has been added to our database.', 'success');
-                
-                // Reset form
-                this.reset();
+            // Get profile picture
+            const profilePictureInput = document.getElementById('registerProfilePicture');
+            let profilePicture = null;
+            if (profilePictureInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Create new donor object
+                    const newDonor = {
+                        name,
+                        bloodType,
+                        country,
+                        city,
+                        phone,
+                        lastDonation,
+                        profilePicture: e.target.result
+                    };
+                    
+                    // Add to data storage
+                    if (dataStorage.addDonor(newDonor)) {
+                        // Update donors display
+                        displayDonors();
+                        updateStats();
+                        
+                        // Show success message
+                        showNotification('Thank you for registering as a blood donor! Your information has been added to our database.', 'success');
+                        
+                        // Reset form
+                        document.getElementById('bloodDonorForm').reset();
+                        document.getElementById('registerProfilePreview').innerHTML = '<i class="fas fa-user"></i>';
+                    } else {
+                        showNotification('There was an error saving your information. Please try again.', 'error');
+                    }
+                };
+                reader.readAsDataURL(profilePictureInput.files[0]);
             } else {
-                showNotification('There was an error saving your information. Please try again.', 'error');
+                // Create new donor object without profile picture
+                const newDonor = {
+                    name,
+                    bloodType,
+                    country,
+                    city,
+                    phone,
+                    lastDonation
+                };
+                
+                // Add to data storage
+                if (dataStorage.addDonor(newDonor)) {
+                    // Update donors display
+                    displayDonors();
+                    updateStats();
+                    
+                    // Show success message
+                    showNotification('Thank you for registering as a blood donor! Your information has been added to our database.', 'success');
+                    
+                    // Reset form
+                    this.reset();
+                    document.getElementById('registerProfilePreview').innerHTML = '<i class="fas fa-user"></i>';
+                } else {
+                    showNotification('There was an error saving your information. Please try again.', 'error');
+                }
             }
         });
 
@@ -1308,23 +1419,37 @@
             
             const id = document.getElementById('editId').value;
             const updatedData = {
-                firstName: document.getElementById('editFirstName').value,
-                lastName: document.getElementById('editLastName').value,
-                email: document.getElementById('editEmail').value,
+                name: document.getElementById('editName').value,
                 phone: document.getElementById('editPhone').value,
                 bloodType: document.getElementById('editBloodType').value,
                 country: document.getElementById('editCountry').value,
                 city: document.getElementById('editCity').value,
-                availability: document.getElementById('editAvailability').value,
                 lastDonation: document.getElementById('editLastDonation').value
             };
             
-            if (dataStorage.updateDonor(id, updatedData)) {
-                showNotification('Donor information updated successfully.', 'success');
-                displayDonors();
-                document.getElementById('editModal').style.display = 'none';
+            // Get profile picture if changed
+            const profilePictureInput = document.getElementById('editProfilePicture');
+            if (profilePictureInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    updatedData.profilePicture = e.target.result;
+                    if (dataStorage.updateDonor(id, updatedData)) {
+                        showNotification('Your information updated successfully.', 'success');
+                        displayDonors();
+                        document.getElementById('editModal').style.display = 'none';
+                    } else {
+                        showNotification('Failed to update your information.', 'error');
+                    }
+                };
+                reader.readAsDataURL(profilePictureInput.files[0]);
             } else {
-                showNotification('Failed to update donor information.', 'error');
+                if (dataStorage.updateDonor(id, updatedData)) {
+                    showNotification('Your information updated successfully.', 'success');
+                    displayDonors();
+                    document.getElementById('editModal').style.display = 'none';
+                } else {
+                    showNotification('Failed to update your information.', 'error');
+                }
             }
         });
 
@@ -1409,6 +1534,17 @@
             displayDonors();
             updateStats();
             updateAdminUI();
+            
+            // Set up profile picture upload handlers
+            handleProfilePictureUpload(
+                document.getElementById('registerProfilePicture'),
+                document.getElementById('registerProfilePreview')
+            );
+            
+            handleProfilePictureUpload(
+                document.getElementById('editProfilePicture'),
+                document.getElementById('profilePreview')
+            );
             
             // Update donor count badge
             const donorCount = dataStorage.getDonors().length;
